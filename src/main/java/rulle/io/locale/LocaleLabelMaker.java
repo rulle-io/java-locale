@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +40,7 @@ public class LocaleLabelMaker {
     Locale[] localesAll = Locale.getAvailableLocales();
     Stream<Locale> stream = Arrays.stream(localesAll);
     List<LocaleLabel> labels = stream
-            .map(l -> makeLocaleLabel(l))
+            .map(LocaleLabelMaker::makeLocaleLabel)
             .flatMap(Optional::stream)
             .collect(Collectors.toList());
 
@@ -61,15 +60,15 @@ public class LocaleLabelMaker {
   public static Optional<LocaleLabel> makeLocaleLabel(final Locale currentLocale) {
 
     String currentLocaleStr = currentLocale.toString();
-    if (Objects.isNull(currentLocaleStr) || currentLocaleStr.isEmpty()) {
+    if (currentLocaleStr.isEmpty()) {
       return Optional.empty();
     }
 
     // Random input values
-    Integer quantity = Integer.valueOf(123456);
-    Double amount = Double.valueOf(345987.246);
+    Integer quantity = 123456;
+    Double amount = 345987.246;
     LocalDate localDate = LocalDate.of(2025, Month.DECEMBER, 31);
-    Double currencyAmount = Double.valueOf(9876543.21);
+    Double currencyAmount = 9876543.21;
 
     NumberFormat numberFormatter = NumberFormat.getNumberInstance(currentLocale);
     NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(currentLocale);
@@ -94,7 +93,6 @@ public class LocaleLabelMaker {
     // TODO: use getValues()
     DateTimeFormatter dateFormatterFull =
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(currentLocale);
-    ;
     DateTimeFormatter dateFormatterLong =
         DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(currentLocale);
     DateTimeFormatter dateFormatterMedium =
@@ -137,9 +135,7 @@ public class LocaleLabelMaker {
     @Override
     public String toString() {
       StringBuilder buf = new StringBuilder(String.format("LocaleStats [%s]\n", name));
-      stats.asMap().entrySet().forEach(
-              stat ->
-                      buf.append(String.format("[%s] -> [%s]\n", stat.getKey(), stat.getValue().toString())));
+      stats.asMap().forEach((key, value) -> buf.append(String.format("[%s] -> [%s]\n", key, value.toString())));
       buf.append(" - === -\n");
       return buf.toString();
     }
