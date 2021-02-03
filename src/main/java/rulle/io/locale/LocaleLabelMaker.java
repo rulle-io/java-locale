@@ -8,10 +8,13 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.time.temporal.UnsupportedTemporalTypeException;
+import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Currency;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -40,21 +43,26 @@ public class LocaleLabelMaker {
     Locale[] localesAll = Locale.getAvailableLocales();
     Stream<Locale> stream = Arrays.stream(localesAll);
     List<LocaleLabel> labels = stream
+            // ignore Locales with script or variant
+            .filter(l -> !l.getCountry().isEmpty() && l.getVariant().isEmpty() && l.getScript().isEmpty())
             .map(LocaleLabelMaker::makeLocaleLabel)
             .flatMap(Optional::stream)
             .collect(Collectors.toList());
 
+    System.out.println(String.format("Number of locales loaded: [%d]", labels.size()));
+
+    
+    
     LocaleStats dateShort = new LocaleStats("dateShort"); 
     labels.forEach(label -> {
-      printLocaleLabel(label);
+      //  printLocaleLabel(label); // TODO uncomment to produce full log
       // TODO: extend to all tracked parameters
       // status regarding usage of a pattern:
       // YYYY-MM-DD => [USA, UK, IT]
       dateShort.put(label.datePart().dateShort(), label.localePart().localeStr());
     });
 
-    System.out.println("DateLong pattern: " + dateShort.toString());
-    
+    System.out.println(dateShort.toString());
   }
 
   public static Optional<LocaleLabel> makeLocaleLabel(final Locale currentLocale) {
@@ -134,9 +142,26 @@ public class LocaleLabelMaker {
 
     @Override
     public String toString() {
-      StringBuilder buf = new StringBuilder(String.format("LocaleStats [%s]\n", name));
-      stats.asMap().forEach((key, value) -> buf.append(String.format("[%s] -> [%s]\n", key, value.toString())));
+      // create a histogram of number of locales per format type.
+      List<AbstractMap.SimpleEntry<String, Integer>> sortedListOfFrequencies = stats.asMap().entrySet().stream()
+              .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue().size()))
+              .sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+              .collect(Collectors.toList());
+
+      // TODO: print a formatted value with RTL
+      
+      StringBuffer buf = new StringBuffer(String.format("LocaleStats [%s]\n", name));
+      sortedListOfFrequencies.stream()
+          .forEachOrdered(
+              e -> {
+                int paddedLength = 16 - e.getKey().length();
+                buf.append(
+                    String.format(Locale.US,
+                        "[%s]%"+ paddedLength + "s" + " #[%d] locales\n",
+                            e.getKey(), "->", e.getValue()));
+              });
       buf.append(" - === -\n");
+
       return buf.toString();
     }
   }
